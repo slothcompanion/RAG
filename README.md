@@ -19,9 +19,10 @@ You can also plug in your own class by setting `provider: my_module:MyLLM` in th
 
 ```bash
 git clone <this repo> && cd RAG
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv
+.venv/scripts/activate
 pip install -e .                       # core: numpy, pyyaml, httpx
-pip install -e ".[docs,server]"        # + PDF/DOCX loaders and the REST API
+pip install -e ".[docs,server,cryptography,fontTools]"        # + PDF/DOCX loaders and the REST API
 # Optional, depending on backend:
 #   ".[embeddings]"   sentence-transformers embeddings and rerankers
 #   ".[transformers]" run HF models in-process   (+ ".[quant]" for 4/8-bit)
@@ -34,7 +35,7 @@ pip install -e ".[docs,server]"        # + PDF/DOCX loaders and the REST API
 ```bash
 ollama pull qwen3:8b && ollama pull llama3.1:8b && ollama pull nomic-embed-text
 
-versarag -c configs/qwen-ollama.yaml ingest ./my_docs
+versarag -c C:/Users/mwstr/Documents/RAG/configs/qwen-ollama.yaml ingest "C:/Users/mwstr/Documents/1141 21st St SP"
 versarag -c configs/qwen-ollama.yaml ask "What is the refund policy?"
 versarag -c configs/llama-ollama.yaml chat          # same index, different model
 ```
@@ -47,6 +48,34 @@ versarag -c configs/qwen-ollama.yaml --set retrieval.top_k=10 --set llm.think=tr
 ```
 
 To try the pipeline with no models at all, run `versarag -c configs/offline-demo.yaml ingest examples/docs`. That config uses the `echo` LLM, which prints the exact prompt a real model would receive.
+
+### Working in a folder (no paths on every call)
+
+Point versarag at a folder once. It remembers the folder and the config, and every later command uses them:
+
+```bash
+versarag -c configs/qwen-ollama.yaml open "C:/Users/mwstr/Documents/1141 21st St SP"   # index it, make it active
+versarag chat          # re-indexes changed files, then chats over that folder
+versarag                # same as `versarag chat`
+versarag ask "What is the refund policy?"
+versarag ingest         # re-index the active folder without chatting
+versarag where          # show the active folder and config
+versarag close          # forget the active folder (its index is kept)
+```
+
+State is kept in `~/.versarag/workspace.json` (set `VERSARAG_HOME` to change the location). Each folder's index is stored in `<folder>/.versarag/`, so folders never mix. Pass `--no-refresh` to `chat` to skip the re-index at startup. An explicit `-c` still overrides the remembered config.
+
+### Web UI
+
+```bash
+versarag -c configs/qwen-ollama.yaml ui     # opens http://localhost:8000 in your browser
+```
+
+The page is a chat window with a sidebar. Paste a folder path and click **Open folder** to index it. Answers stream in as they're generated, and each one lists the passages it used. **Re-index folder** picks up new, changed, and deleted files. The folder you open is the same one the terminal commands use, so `versarag chat` and `versarag ask` will use it too.
+
+When you close the browser tab, the server stops by itself within a few seconds. Reloading the page doesn't stop it. If the browser crashes without closing the tab, the server stops after about two minutes of silence. Pass `--keep-running` to keep it up, which is useful if you only call the API. Ctrl+C always stops it.
+
+The UI listens on `127.0.0.1` by default and has no login. If you pass `--host 0.0.0.0` to reach it from another machine, anyone on that network can read your documents, so don't do that on an untrusted network. The page is a single file at `versarag/static/index.html` with no build step, so you can edit it directly.
 
 ## Shipped configs
 
@@ -93,6 +122,9 @@ versarag -c configs/qwen-ollama.yaml serve --port 8000
 | `POST /ingest/texts` | `{"texts": [...], "metadatas": [...]}` |
 | `POST /retrieve` | `{"question": "...", "top_k": 5, "filters": {...}}` |
 | `POST /query` | `{"question": "...", "history": [...], "stream": false}`. With `stream: true` it returns NDJSON events (`sources`, then `token`s, then `done`) |
+| `GET /api/workspace` | Active folder, model, chunk count, indexed files |
+| `POST /api/workspace` | `{"folder": "C:/docs"}` makes a folder active and indexes it |
+| `POST /api/workspace/refresh` | Re-indexes the active folder, including deleted files |
 
 From R / RStudio with `httr2`:
 

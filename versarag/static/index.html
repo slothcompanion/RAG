@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>versarag</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --text: #1c2230;
+    --muted: #667085;
+    --line: #e2e5ea;
+    --accent: #2563eb;
+    --accent-text: #ffffff;
+    --user: #e7eefc;
+    --error: #b42318;
+    --chip: #eef1f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115;
+      --panel: #171a21;
+      --text: #e6e8ee;
+      --muted: #9aa3b2;
+      --line: #2a2f3a;
+      --accent: #6ea8fe;
+      --accent-text: #0b1220;
+      --user: #1f2b44;
+      --error: #ff8a80;
+      --chip: #222731;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  button, input, textarea { font: inherit; color: inherit; }
+  button {
+    background: var(--accent);
+    color: var(--accent-text);
+    border: 0;
+    border-radius: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  input, textarea {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+    width: 100%;
+  }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  .app { display: grid; grid-template-columns: 300px minmax(0, 1fr); height: 100vh; }
+  aside {
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+
+  .brand { font-weight: 700; font-size: 18px; letter-spacing: 0.2px; }
+  .status { color: var(--muted); font-size: 12px; }
+  .label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  .folder {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 12px;
+    word-break: break-all;
+    background: var(--chip);
+    border-radius: 8px;
+    padding: 8px;
+    margin: 6px 0 10px;
+  }
+  .stack { display: flex; flex-direction: column; gap: 8px; }
+  .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+  .small { font-size: 12px; color: var(--muted); }
+  .notice { font-size: 12px; color: var(--muted); }
+  .error { color: var(--error); font-size: 13px; white-space: pre-wrap; word-break: break-word; }
+  .files { min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+  .files ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    min-height: 0;
+    flex: 1;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .files li {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .files li:last-child { border-bottom: 0; }
+  .files li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .files li span:last-child { color: var(--muted); flex-shrink: 0; }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+  }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 0;
+  }
+  .empty-state {
+    margin: auto;
+    text-align: center;
+    color: var(--muted);
+    max-width: 420px;
+    padding: 24px;
+  }
+  .empty-state strong { display: block; color: var(--text); font-size: 16px; margin-bottom: 6px; }
+  .msg { max-width: min(760px, 92%); }
+  .msg.user { align-self: flex-end; }
+  .bubble { padding: 10px 14px; border-radius: 12px; white-space: pre-wrap; word-break: break-word; }
+  .msg.user .bubble { background: var(--user); }
+  .msg.assistant .bubble { background: var(--panel); border: 1px solid var(--line); }
+  .pending { color: var(--muted); }
+  .bubble.error { color: var(--error); }
+  .stopped { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+  details.sources { margin-top: 6px; font-size: 13px; }
+  details.sources summary { cursor: pointer; color: var(--muted); }
+  .src { border-left: 2px solid var(--line); padding: 4px 0 4px 10px; margin: 8px 0; }
+  .src .head { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; font-size: 12px; }
+  .src .score { color: var(--muted); font-weight: 400; }
+  .src p { margin: 4px 0 0; color: var(--muted); white-space: pre-wrap; word-break: break-word; }
+
+  #composer {
+    display: flex;
+    gap: 8px;
+    padding: 14px 20px 18px;
+    border-top: 1px solid var(--line);
+    background: var(--panel);
+    align-items: flex-end;
+  }
+  #composer textarea { resize: none; min-height: 44px; max-height: 180px; }
+
+  @media (max-width: 760px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); height: 100vh; }
+    aside { max-height: 42vh; border-right: 0; border-bottom: 1px solid var(--line); }
+    #messages { padding: 14px; }
+    #composer { padding: 10px 14px 14px; }
+    .msg { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div>
+      <div class="brand">versarag</div>
+      <div class="status" id="status">Connecting...</div>
+    </div>
+
+    <section class="stack">
+      <div class="label">Folder</div>
+      <div class="folder" id="folder" hidden></div>
+      <form id="open-form" class="stack">
+        <input id="folder-input" placeholder="C:\Users\you\Documents\my-folder" autocomplete="off" required>
+        <button type="submit" id="open-btn">Open folder</button>
+      </form>
+      <button type="button" class="ghost" id="reindex" hidden>Re-index folder</button>
+      <div class="notice" id="busy" hidden>Indexing. Large folders can take a while.</div>
+      <div class="error" id="error" hidden></div>
+    </section>
+
+    <section class="files">
+      <div class="row">
+        <span class="label">Indexed files</span>
+        <span class="small" id="file-count"></span>
+      </div>
+      <input id="file-filter" placeholder="Filter files" autocomplete="off" hidden>
+      <ul id="files"></ul>
+    </section>
+  </aside>
+
+  <main>
+    <header>
+      <h1 id="title">No folder open</h1>
+      <button type="button" class="ghost" id="new-chat">New chat</button>
+    </header>
+
+    <div id="messages"></div>
+    <div class="empty-state" id="empty">
+      <strong id="empty-title">Open a folder to start</strong>
+      <p id="empty-text">Paste the path of a folder in the sidebar. versarag indexes its documents and then answers your questions from them, citing the passages it used.</p>
+    </div>
+
+    <form id="composer">
+      <textarea id="question" rows="2" placeholder="Ask about your documents. Enter to send, Shift+Enter for a new line." disabled></textarea>
+      <button type="submit" id="send" disabled>Send</button>
+      <button type="button" class="ghost" id="stop" hidden>Stop</button>
+    </form>
+  </main>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const MAX_HISTORY = 12;
+
+let workspace = null;   // last response from /api/workspace
+let history = [];       // prior turns sent with each question
+let controller = null;  // AbortController for the answer in progress
+
+function errorText(detail) {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) return detail.map((d) => d.msg || JSON.stringify(d)).join("\n");
+  return JSON.stringify(detail);
+}
+
+async function api(path, options = {}) {
+  const res = await fetch(path, {
+    ...options,
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(errorText(body.detail) || res.statusText);
+  return body;
+}
+
+function showError(message) {
+  $("error").textContent = message || "";
+  $("error").hidden = !message;
+}
+
+function setBusy(on) {
+  $("busy").hidden = !on;
+  $("open-btn").disabled = on;
+  $("reindex").disabled = on;
+}
+
+function scrollToEnd() {
+  const box = $("messages");
+  box.scrollTop = box.scrollHeight;
+}
+
+function renderFiles() {
+  const list = $("files");
+  const filter = $("file-filter").value.trim().toLowerCase();
+  const files = (workspace && workspace.files) || [];
+  const shown = files.filter((f) => !filter || f.name.toLowerCase().includes(filter));
+  list.replaceChildren(
+    ...shown.map((f) => {
+      const li = document.createElement("li");
+      const name = document.createElement("span");
+      name.textContent = f.name;
+      name.title = f.source;
+      const count = document.createElement("span");
+      count.textContent = `${f.chunks}`;
+      li.append(name, count);
+      return li;
+    })
+  );
+  $("file-count").textContent = files.length ? `${files.length} files` : "";
+  $("file-filter").hidden = files.length < 8;
+}
+
+function renderWorkspace(ws) {
+  workspace = ws;
+  const hasFolder = Boolean(ws.folder);
+
+  $("status").textContent = `${ws.llm} · ${ws.embeddings} · ${ws.chunks} chunks`;
+  $("folder").textContent = ws.folder || "";
+  $("folder").hidden = !hasFolder;
+  $("reindex").hidden = !hasFolder;
+  if (hasFolder) $("folder-input").value = ws.folder;
+
+  $("title").textContent = hasFolder ? ws.folder : "No folder open";
+  $("question").disabled = !hasFolder;
+  $("send").disabled = !hasFolder;
+  renderFiles();
+  updateEmpty();
+}
+
+function updateEmpty() {
+  const empty = $("empty");
+  const hasMessages = $("messages").childElementCount > 0;
+  empty.hidden = hasMessages;
+  if (!workspace || !workspace.folder) return;
+  $("empty-title").textContent = workspace.chunks ? "Ask a question" : "This folder has no indexed documents";
+  $("empty-text").textContent = workspace.chunks
+    ? "Answers come from the documents in this folder, with the passages they came from listed under each answer."
+    : "Add supported files to the folder and click Re-index folder.";
+}
+
+function addNote(text, className = "small") {
+  const note = document.createElement("div");
+  note.className = `${className} notice`;
+  note.style.textAlign = "center";
+  note.textContent = text;
+  $("messages").append(note);
+  updateEmpty();
+  scrollToEnd();
+}
+
+function addMessage(role, text = "") {
+  const wrap = document.createElement("div");
+  wrap.className = `msg ${role}`;
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = text;
+  wrap.append(bubble);
+  $("messages").append(wrap);
+  updateEmpty();
+  scrollToEnd();
+  return wrap;
+}
+
+function renderSources(wrap, sources) {
+  wrap.querySelector("details.sources")?.remove();
+  if (!sources || !sources.length) return;
+  const details = document.createElement("details");
+  details.className = "sources";
+  details.open = false;
+  const summary = document.createElement("summary");
+  summary.textContent = `Sources (${sources.length})`;
+  details.append(summary);
+  sources.forEach((s, i) => {
+    const item = document.createElement("div");
+    item.className = "src";
+    const head = document.createElement("div");
+    head.className = "head";
+    const label = document.createElement("span");
+    label.textContent = `[${i + 1}] ${s.label}`;
+    const score = document.createElement("span");
+    score.className = "score";
+    score.textContent = s.score.toFixed(3);
+    head.append(label, score);
+    const excerpt = document.createElement("p");
+    const text = s.text.trim();
+    excerpt.textContent = text.length > 400 ? text.slice(0, 400) + "..." : text;
+    item.append(head, excerpt);
+    details.append(item);
+  });
+  wrap.append(details);
+}
+
+function setAnswering(on) {
+  $("send").hidden = on;
+  $("stop").hidden = !on;
+  $("question").disabled = on;
+}
+
+async function sendQuestion(question) {
+  if (!workspace || !workspace.folder || controller) return;
+  addMessage("user", question);
+  const wrap = addMessage("assistant", "");
+  const bubble = wrap.querySelector(".bubble");
+  bubble.textContent = "Searching...";
+  bubble.classList.add("pending");
+
+  controller = new AbortController();
+  setAnswering(true);
+  let answer = "";
+  let started = false;
+  let stopped = false;
+
+  const handle = (event) => {
+    if (event.type === "sources") {
+      renderSources(wrap, event.sources);
+    } else if (event.type === "token") {
+      if (!started) {
+        bubble.textContent = "";
+        bubble.classList.remove("pending");
+        started = true;
+      }
+      answer += event.text;
+      bubble.textContent = answer;
+      scrollToEnd();
+    }
+  };
+
+  try {
+    const res = await fetch("/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, history, stream: true }),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(errorText((await res.json().catch(() => ({}))).detail) || res.statusText);
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let newline;
+      while ((newline = buffer.indexOf("\n")) >= 0) {
+        const line = buffer.slice(0, newline).trim();
+        buffer = buffer.slice(newline + 1);
+        if (line) handle(JSON.parse(line));
+      }
+    }
+  } catch (err) {
+    if (err.name === "AbortError") {
+      stopped = true;
+    } else {
+      bubble.textContent = `Error: ${err.message}`;
+      bubble.classList.remove("pending");
+      bubble.classList.add("error");
+    }
+  } finally {
+    if (!started && bubble.classList.contains("pending")) {
+      bubble.textContent = stopped ? "(stopped)" : "(no answer)";
+      bubble.classList.remove("pending");
+    }
+    if (stopped) {
+      const note = document.createElement("div");
+      note.className = "stopped";
+      note.textContent = "Stopped";
+      wrap.append(note);
+    }
+    if (answer) {
+      history.push({ role: "user", content: question }, { role: "assistant", content: answer });
+      history = history.slice(-MAX_HISTORY);
+    }
+    controller = null;
+    setAnswering(false);
+    $("question").focus();
+    scrollToEnd();
+  }
+}
+
+async function openFolder(folder) {
+  showError("");
+  setBusy(true);
+  try {
+    const ws = await api("/api/workspace", { method: "POST", body: JSON.stringify({ folder }) });
+    history = [];
+    $("messages").replaceChildren();
+    renderWorkspace(ws);
+    addNote(`Opened ${ws.folder}. Indexed ${ws.ingest.files} files, ${ws.ingest.added} new chunks.`);
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function reindex() {
+  showError("");
+  setBusy(true);
+  try {
+    const ws = await api("/api/workspace/refresh", { method: "POST" });
+    renderWorkspace(ws);
+    addNote(`Re-indexed. ${ws.ingest.files} files, ${ws.ingest.added} new chunks, ${ws.chunks} total.`);
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function loadWorkspace() {
+  try {
+    renderWorkspace(await api("/api/workspace"));
+    if (workspace.folder) {
+      addNote(`Active folder: ${workspace.folder}`);
+    }
+  } catch (err) {
+    $("status").textContent = "Cannot reach the versarag server";
+    showError(err.message);
+  }
+}
+
+$("open-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const folder = $("folder-input").value.trim();
+  if (folder) openFolder(folder);
+});
+
+$("reindex").addEventListener("click", reindex);
+
+$("composer").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const question = $("question").value.trim();
+  if (!question) return;
+  $("question").value = "";
+  sendQuestion(question);
+});
+
+$("question").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+    e.preventDefault();
+    $("composer").requestSubmit();
+  }
+});
+
+$("stop").addEventListener("click", () => controller?.abort());
+
+$("new-chat").addEventListener("click", () => {
+  history = [];
+  $("messages").replaceChildren();
+  updateEmpty();
+});
+
+$("file-filter").addEventListener("input", renderFiles);
+
+// Tell the server the page is still open. It shuts down when this stops (tab closed).
+function heartbeat() {
+  fetch("/api/heartbeat", { method: "POST", keepalive: true }).catch(() => {});
+}
+heartbeat();
+setInterval(heartbeat, 5000);
+window.addEventListener("pagehide", () => navigator.sendBeacon("/api/bye"));
+
+loadWorkspace();
+</script>
+</body>
+</html>

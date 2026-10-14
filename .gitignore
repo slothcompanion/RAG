@@ -10,3 +10,5 @@ build/
 .rag_index*/
 *.gguf
 .env
+RAG.code-workspace
+.versarag/
