@@ -1,0 +1,24 @@
+# Llama 3.x via Ollama — everything local, no Python ML deps needed.
+#   ollama pull llama3.1:8b        (or llama3.2:3b for low-RAM, llama3.3:70b for quality)
+#   ollama pull nomic-embed-text
+llm:
+  provider: ollama
+  model: llama3.1:8b
+  base_url: ${OLLAMA_HOST:-http://localhost:11434}
+  temperature: 0.2
+  num_ctx: 8192          # Ollama's default context is small; RAG prompts need room
+
+embeddings:
+  provider: openai_compatible
+  base_url: ${OLLAMA_HOST:-http://localhost:11434}/v1
+  model: nomic-embed-text
+  query_prefix: "search_query: "        # nomic-embed expects task prefixes
+  document_prefix: "search_document: "
+
+vectorstore:
+  provider: numpy
+  path: .rag_index_nomic
+
+retrieval:
+  mode: hybrid
+  top_k: 5

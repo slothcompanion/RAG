@@ -1,0 +1,18 @@
+# Qwen3 loaded in-process with Hugging Face transformers.
+#   pip install "versarag[transformers,embeddings]"
+llm:
+  provider: huggingface
+  model: Qwen/Qwen3-4B
+  max_new_tokens: 1024
+  temperature: 0.3
+  chat_template_kwargs:
+    enable_thinking: false
+
+embeddings:
+  provider: sentence_transformers
+  model: Qwen/Qwen3-Embedding-0.6B
+  query_prompt_name: query
+
+vectorstore:
+  provider: numpy
+  path: .rag_index_qwen3emb

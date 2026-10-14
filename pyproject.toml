@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "versarag"
+version = "0.1.0"
+description = "A versatile, model-agnostic RAG toolkit for open-source LLMs (Llama, Qwen, Mistral, Gemma, ...)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+  "numpy>=1.24",
+  "pyyaml>=6.0",
+  "httpx>=0.25",
+]
+
+[project.optional-dependencies]
+# Local embeddings / rerankers (BGE, E5, nomic, Qwen3-Embedding, bge-reranker...)
+embeddings = ["sentence-transformers>=3.0"]
+# Run HF models in-process (Llama, Qwen, ...) with optional 4/8-bit quantization
+transformers = ["transformers>=4.45", "torch>=2.2", "accelerate>=0.30"]
+quant = ["bitsandbytes>=0.43"]
+# Run GGUF models in-process
+llamacpp = ["llama-cpp-python>=0.2.90"]
+chroma = ["chromadb>=0.5"]
+docs = ["pypdf>=4.0", "python-docx>=1.1"]
+server = ["fastapi>=0.110", "uvicorn>=0.29"]
+dev = ["pytest>=8"]
+all = [
+  "versarag[embeddings,transformers,llamacpp,chroma,docs,server]",
+]
+
+[project.scripts]
+versarag = "versarag.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["versarag*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 140
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "I"]
+ignore = ["B905"]

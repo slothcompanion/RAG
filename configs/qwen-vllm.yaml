@@ -1,0 +1,33 @@
+# Qwen3 served by vLLM (GPU, high throughput) + Qwen3 embeddings + reranker.
+#   pip install vllm && vllm serve Qwen/Qwen3-8B --max-model-len 32768
+#   pip install "versarag[embeddings]"
+llm:
+  provider: openai_compatible
+  base_url: ${VLLM_URL:-http://localhost:8000/v1}
+  model: Qwen/Qwen3-8B
+  temperature: 0.3
+  max_tokens: 1536
+  extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+
+embeddings:
+  provider: sentence_transformers
+  model: Qwen/Qwen3-Embedding-0.6B
+  query_prompt_name: query            # Qwen3-Embedding uses an instruction prompt for queries
+
+reranker:
+  provider: cross_encoder
+  model: BAAI/bge-reranker-v2-m3
+
+vectorstore:
+  provider: numpy
+  path: .rag_index_qwen3emb
+
+retrieval:
+  mode: hybrid
+  top_k: 6
+  candidate_k: 30
+
+prompt:
+  max_context_chars: 24000

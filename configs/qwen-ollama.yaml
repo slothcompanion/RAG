@@ -1,0 +1,25 @@
+# Qwen3 via Ollama.
+#   ollama pull qwen3:8b           (qwen3:4b for laptops, qwen3:14b / qwen3:32b for quality)
+#   ollama pull nomic-embed-text
+llm:
+  provider: ollama
+  model: qwen3:8b
+  base_url: ${OLLAMA_HOST:-http://localhost:11434}
+  temperature: 0.3
+  num_ctx: 16384
+  think: false            # true = let Qwen3 reason first (slower, sometimes better); thinking is stripped from output
+
+embeddings:
+  provider: openai_compatible
+  base_url: ${OLLAMA_HOST:-http://localhost:11434}/v1
+  model: nomic-embed-text
+  query_prefix: "search_query: "
+  document_prefix: "search_document: "
+
+vectorstore:
+  provider: numpy
+  path: .rag_index_nomic   # same embedder as llama-ollama.yaml, so the index is shared
+
+retrieval:
+  mode: hybrid
+  top_k: 6

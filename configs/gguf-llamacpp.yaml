@@ -1,0 +1,22 @@
+# Any GGUF model in-process with llama-cpp-python (CPU, CUDA or Apple Metal).
+#   pip install "versarag[llamacpp,embeddings]"
+# Swap repo_id/filename for Llama, e.g.
+#   repo_id: bartowski/Meta-Llama-3.1-8B-Instruct-GGUF
+#   filename: "*Q4_K_M.gguf"
+llm:
+  provider: llama_cpp
+  repo_id: Qwen/Qwen3-8B-GGUF
+  filename: "*Q4_K_M.gguf"
+  # model_path: ./models/your-model.gguf   # or point at a local file
+  n_ctx: 16384
+  n_gpu_layers: -1           # -1 = offload everything that fits; 0 = CPU only
+  temperature: 0.3
+  max_tokens: 1024
+
+embeddings:
+  provider: sentence_transformers
+  model: BAAI/bge-small-en-v1.5
+
+vectorstore:
+  provider: numpy
+  path: .rag_index_bge_small

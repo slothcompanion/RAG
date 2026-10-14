@@ -1,0 +1,9 @@
+# Zero-dependency smoke test: no model downloads, no server.
+# The "echo" LLM just shows you the prompt the real model would receive.
+llm:
+  provider: echo
+embeddings:
+  provider: hashing
+vectorstore:
+  provider: numpy
+  path: .rag_index_demo
